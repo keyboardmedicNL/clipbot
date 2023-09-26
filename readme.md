@@ -5,6 +5,7 @@ included are:
 - a post script that sends a http post to a watchdog server of your choosing, wich wont happen if the url is left blank in the config
 - a http webserver running to use for uptime monitoring by having an approachable url wich can be checked with something like uptime kuma
 - remote logging capabilities with use of a discord webhook where debugging messages get posted, wich wont happen if the url is left blank in the config
+
 # how to use:
 1. place all contents in a folder and make a "config" folder.
 2. make a config.json and copy the text below into the file 

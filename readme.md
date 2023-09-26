@@ -27,6 +27,7 @@ included are:
 }
 ```
 3. input the correct data and launch the script clipbot.py
+* leave optional entries blank if you do not intent to use them but do include them otherwise the script will throw an error
 
 
 Optionally a dockerfile is included wich can be used to build a docker image or use the one on my repository with the following code

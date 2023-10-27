@@ -18,6 +18,18 @@ def discord_embed(title,color,description):
             ]}
         rl = requests.post(webhooklogurl, json=data)
 
+def gettoken():
+    print("Requesting new token from twitch")
+    discord_embed("Clipbot",14081792,"Requesting new token from twitch")
+    rrr=requests.post("https://id.twitch.tv/oauth2/token", data={"client_id" : str(twitchClientId), "client_secret" : str(twitchSecret), "grant_type":"client_credentials"})
+    tokenJson = rrr.json()
+    token = tokenJson["access_token"]
+    print(f"new token is: {token}")
+    with open(r'config/token.txt', 'w') as tokenFile:
+        tokenFile.write("%s\n" % token)
+        tokenFile.close()
+    return(token)
+
 # Loads variables used in script
 with open("config/config.json") as config:
     configJson = json.load(config)
@@ -31,21 +43,13 @@ print("<CLIPBOT> succesfully loaded config")
 discord_embed("Clipbot",14081792,"succesfully loaded config")
 
 #webserver for monitoring purposes
-while webservercheck == False: # loop to ensure webserver gets loaded
-    try:
-        file_exists = exists("webserver.py")
-        if file_exists == True: # check added so exception actually triggers
-            def thread_second(): # start webserver.py as a second threat to allow it to run parallel with main script
-                call(["python", "webserver.py"])
-            processThread = threading.Thread(target=thread_second)
-            processThread.start()
-            webservercheck = True # stops loop if succesfull
-            print("<CLIPBOT> starting webserver for local monitoring") 
-            discord_embed("Clipbot",14081792,"starting webserver for local monitoring")
-    except Exception as e: 
-        print(f"An exception occurred whilst trying to start the webserver: {str(e)} waiting for 1 minute")
-        discord_embed("Clipbot",10159108,f"An exception occurred whilst trying to start the webserver: {str(e)} waiting for 1 minute")
-        time.sleep(60)
+def thread_second(): # start webserver.py as a second threat to allow it to run parallel with main script
+    call(["python", "webserver.py"])
+processThread = threading.Thread(target=thread_second)
+processThread.start()
+webservercheck = True # stops loop if succesfull
+print("<CLIPBOT> starting webserver for local monitoring") 
+discord_embed("Clipbot",14081792,"starting webserver for local monitoring")
 
 #post process to talk to remote monitor
 if webhookmonitorurl != "":
@@ -58,12 +62,16 @@ if webhookmonitorurl != "":
     discord_embed("Clipbot",14081792,"starting post server for remote monitoring")
 
 #opens file to get auth token
-with open("config/token.txt", 'r') as file2:
-    tokenRaw = str(file2.readline())
-    token = tokenRaw.strip()
-    file2.close()
-print ("Token to use for auth: " + token)
-discord_embed("Clipbot",14081792,"auth token loaded succesfully")
+token_exists = exists("config/token.txt")
+if token_exists == True:
+    with open("config/token.txt", 'r') as file2:
+        tokenRaw = str(file2.readline())
+        token = tokenRaw.strip()
+        file2.close()
+    print ("Token to use for auth: " + token)
+    discord_embed("Clipbot",14081792,"auth token loaded succesfully")
+else:
+    token = gettoken()
 
 # Main loop that polls the streamers one by one and checks for clips in the last hour
 while True:
@@ -72,11 +80,17 @@ while True:
         with open("config/streamers.txt", 'r') as streamerfile:
             streamers = [line.rstrip() for line in streamerfile]
     # opens clips file and loads it for comparison later
-        with open("config/clips.txt", 'r') as clipsFile: 
-            clips = [line.rstrip() for line in clipsFile]
-            clipsFile.close()
-        with open("config/clips.txt",'w') as clipsFile:
-            pass
+        clips_exists = exists("config/clips.txt")
+        if clips_exists == True:
+            with open("config/clips.txt", 'r') as clipsFile: 
+                clips = [line.rstrip() for line in clipsFile]
+                clipsFile.close()
+            with open("config/clips.txt",'w') as clipsFile:
+                pass
+        else:
+            clips = []
+            with open("config/clips.txt",'w') as clipsFile:
+                pass
     # Gets current time and hour ago in utc for use in request
         currentTime = (datetime.now(timezone.utc))
         currentTimeFormatted = (currentTime.strftime("%Y-%m-%dT%H:%M:%SZ"))
@@ -88,15 +102,7 @@ while True:
             print(f"Request response: {r}")
     # checks if token is valid and requests a new one if not
             if "401" in str(r):
-                print("Requesting new token from twitch")
-                discord_embed("Clipbot",14081792,"Requesting new token from twitch")
-                rrr=requests.post("https://id.twitch.tv/oauth2/token", data={"client_id" : str(twitchClientId), "client_secret" : str(twitchSecret), "grant_type":"client_credentials"})
-                tokenJson = rrr.json()
-                token = tokenJson["access_token"]
-                print(f"new token is: {token}")
-                with open(r'config/token.txt', 'w') as tokenFile:
-                    tokenFile.write("%s\n" % token)
-                    tokenFile.close()
+                token = gettoken()
                 r=requests.get(f"https://api.twitch.tv/helix/users?login={streamer}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
             elif "200" in str(r):
                 print(f"{token} is valid and will be used")

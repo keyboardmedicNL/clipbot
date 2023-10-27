@@ -22,7 +22,7 @@ included are:
     "webport": PORT_FOR_LOCAL_WEBSERVER
 }
 ```
-3. create a streamers.txt file in the config folder and add each streamer to poll on a new line
+3. create a streamers.txt file in the config folder and add every streamer you want to poll on a new line, alternativly add the url to a txt file that contains the list to poll
 4. input the correct data and launch the script clipbot.py
 * leave optional entries blank if you do not intent to use them but do include them otherwise the script will throw an error
 

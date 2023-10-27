@@ -32,6 +32,7 @@ def gettoken():
         tokenFile.close()
     return(token)
 
+# gets list of streamers to poll
 def getstreamers():
     with open("config/streamers.txt", 'r') as streamerfile:
         streamers = [line.rstrip() for line in streamerfile]

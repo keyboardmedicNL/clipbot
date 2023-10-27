@@ -19,15 +19,11 @@ included are:
     "botname": "NAME_VALUE_SEND_TO_REMOTE_MONITORING_SERVER/OPTIONAL",
     "posttimeout": "TIME_BETWEEN_POSTS_TO_REMOTE_MONITORING/OPTIONAL",
     "hostname": "ADRESS_FOR_LOCAL_WEBSERVER",
-    "webport": PORT_FOR_LOCAL_WEBSERVER,
-    "streamers": [
-    "STREAMER1",
-    "STREAMER2",
-    "STREAMER3"
-    ]
+    "webport": PORT_FOR_LOCAL_WEBSERVER
 }
 ```
-3. input the correct data and launch the script clipbot.py
+3. create a streamers.txt file in the config folder and add each streamer to poll on a new line
+4. input the correct data and launch the script clipbot.py
 * leave optional entries blank if you do not intent to use them but do include them otherwise the script will throw an error
 
 

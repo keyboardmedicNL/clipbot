@@ -17,6 +17,7 @@ def discord_embed(title,color,description):
                 }
             ]}
         rl = requests.post(webhooklogurl, json=data)
+        time.sleep(1)
 
 def gettoken():
     print("Requesting new token from twitch")
@@ -47,7 +48,6 @@ def thread_second(): # start webserver.py as a second threat to allow it to run 
     call(["python", "webserver.py"])
 processThread = threading.Thread(target=thread_second)
 processThread.start()
-webservercheck = True # stops loop if succesfull
 print("<CLIPBOT> starting webserver for local monitoring") 
 discord_embed("Clipbot",14081792,"starting webserver for local monitoring")
 
@@ -57,7 +57,6 @@ if webhookmonitorurl != "":
         call(["python", "post.py"])
     processThread = threading.Thread(target=thread_third)
     processThread.start()
-    postcheck = True # stops loop if succesfull
     print("<CLIPBOT> starting post server for remote monitoring")
     discord_embed("Clipbot",14081792,"starting post server for remote monitoring")
 

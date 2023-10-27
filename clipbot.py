@@ -19,6 +19,7 @@ def discord_embed(title,color,description):
         rl = requests.post(webhooklogurl, json=data)
         time.sleep(1)
 
+# gets new auth token from twitch
 def gettoken():
     print("Requesting new token from twitch")
     discord_embed("Clipbot",14081792,"Requesting new token from twitch")
@@ -30,6 +31,14 @@ def gettoken():
         tokenFile.write("%s\n" % token)
         tokenFile.close()
     return(token)
+
+def getstreamers():
+    with open("config/streamers.txt", 'r') as streamerfile:
+        streamers = [line.rstrip() for line in streamerfile]
+        if "http" in streamers[0]:
+            response = requests.get(streamers[0])
+            streamers = response.text.splitlines()
+    return(streamers)
 
 # Loads variables used in script
 with open("config/config.json") as config:
@@ -76,8 +85,7 @@ else:
 while True:
     try:
     # reads streamers.txt
-        with open("config/streamers.txt", 'r') as streamerfile:
-            streamers = [line.rstrip() for line in streamerfile]
+        streamers = getstreamers()
     # opens clips file and loads it for comparison later
         clips_exists = exists("config/clips.txt")
         if clips_exists == True:

@@ -6,12 +6,6 @@ import threading
 from subprocess import call
 from os.path import exists
 
-configfile=False
-channelsfile=False
-webservercheck=False
-postcheck=False
-tokenCheck=False
-
 # formats embed for discord webhook and posts to url
 def discord_embed(title,color,description):
     if webhooklogurl != "":
@@ -25,23 +19,16 @@ def discord_embed(title,color,description):
         rl = requests.post(webhooklogurl, json=data)
 
 # Loads variables used in script
-while configfile == False:
-    try:
-        with open("config/config.json") as config:
-            configJson = json.load(config)
-            twitchClientId = configJson["twitchClientId"]
-            twitchSecret = configJson["twitchSecret"]
-            webhookurl = configJson["webhookurl"]
-            webhooklogurl = configJson["webhooklogurl"]
-            webhookmonitorurl = configJson["webhookmonitorurl"]
-            streamers = configJson["streamers"]
-            config.close()
-        configfile = True # stops loop when loaded succesfully
-        print("<CLIPBOT> succesfully loaded config")
-        discord_embed("Clipbot",14081792,"succesfully loaded config")
-    except Exception as e: 
-        print(f"An exception occurred whilst trying to read the config: {str(e)} waiting for 1 minute")
-        time.sleep(60)
+with open("config/config.json") as config:
+    configJson = json.load(config)
+    twitchClientId = configJson["twitchClientId"]
+    twitchSecret = configJson["twitchSecret"]
+    webhookurl = configJson["webhookurl"]
+    webhooklogurl = configJson["webhooklogurl"]
+    webhookmonitorurl = configJson["webhookmonitorurl"]
+    config.close()
+print("<CLIPBOT> succesfully loaded config")
+discord_embed("Clipbot",14081792,"succesfully loaded config")
 
 #webserver for monitoring purposes
 while webservercheck == False: # loop to ensure webserver gets loaded
@@ -61,43 +48,29 @@ while webservercheck == False: # loop to ensure webserver gets loaded
         time.sleep(60)
 
 #post process to talk to remote monitor
-while postcheck == False: # loop to ensure post gets loaded
-    try:
-        file_exists = exists("post.py")
-        if file_exists == True: # check added so exception actually triggers
-            if webhookmonitorurl != "":
-                def thread_third(): # start post.py as a third threat to allow it to run parallel with main script
-                    call(["python", "post.py"])
-                processThread = threading.Thread(target=thread_third)
-                processThread.start()
-                postcheck = True # stops loop if succesfull
-                print("<CLIPBOT> starting post server for remote monitoring")
-                discord_embed("Clipbot",14081792,"starting post server for remote monitoring")
-            else:
-                postcheck = True # stops loop if succesfull
-    except Exception as e: # catches exception
-        print(f"An exception occurred whilst trying to start the post server: {str(e)} waiting for 1 minute")
-        discord_embed("Clipbot",10159108,f"An exception occurred whilst trying to start the post server: {str(e)} waiting for 1 minute")
-        time.sleep(60)
+if webhookmonitorurl != "":
+    def thread_third(): # start post.py as a third threat to allow it to run parallel with main script
+        call(["python", "post.py"])
+    processThread = threading.Thread(target=thread_third)
+    processThread.start()
+    postcheck = True # stops loop if succesfull
+    print("<CLIPBOT> starting post server for remote monitoring")
+    discord_embed("Clipbot",14081792,"starting post server for remote monitoring")
 
 #opens file to get auth token
-while tokenCheck == False:
-    try:
-        with open("config/token.txt", 'r') as file2:
-            tokenRaw = str(file2.readline())
-            token = tokenRaw.strip()
-            file2.close()
-        tokenCheck = True
-        print ("Token to use for auth: " + token)
-        discord_embed("Clipbot",14081792,"auth token loaded succesfully")
-    except Exception as e:
-        print(f"An exception occurred whilst trying to read the tokenfile: {str(e)} waiting for 1 minute")
-        discord_embed("Clipbot",10159108,f"An exception occurred whilst trying to read the tokenfile: {str(e)} waiting for 1 minute")
-        time.sleep(60)
+with open("config/token.txt", 'r') as file2:
+    tokenRaw = str(file2.readline())
+    token = tokenRaw.strip()
+    file2.close()
+print ("Token to use for auth: " + token)
+discord_embed("Clipbot",14081792,"auth token loaded succesfully")
 
 # Main loop that polls the streamers one by one and checks for clips in the last hour
 while True:
     try:
+    # reads streamers.txt
+        with open("config/streamers.txt", 'r') as streamerfile:
+            streamers = [line.rstrip() for line in streamerfile]
     # opens clips file and loads it for comparison later
         with open("config/clips.txt", 'r') as clipsFile: 
             clips = [line.rstrip() for line in clipsFile]

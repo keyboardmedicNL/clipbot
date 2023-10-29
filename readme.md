@@ -7,8 +7,9 @@ included are:
 - remote logging capabilities with use of a discord webhook where debugging messages get posted, wich wont happen if the url is left blank in the config
 
 # how to use:
-1. place all contents in a folder and make a "config" folder.
-2. make a config.json and copy the text below into the file 
+1. install python on your system from the python website https://www.python.org/downloads/
+2. place all contents in a folder and make a "config" folder.
+3. make a config.json and copy the text below into the file 
 ```
 {
     "twitchClientId": "TWITCH_API_CLIENT_ID",
@@ -22,8 +23,8 @@ included are:
     "webport": PORT_FOR_LOCAL_WEBSERVER
 }
 ```
-3. create a streamers.txt file in the config folder and add every streamer you want to poll on a new line, alternativly add the url to a txt file that contains the list to poll
-4. input the correct data and launch the script clipbot.py
+4. create a streamers.txt file in the config folder and add every streamer you want to poll on a new line, alternativly add the url to a txt file that contains the list to poll
+5. input the correct data and launch the script clipbot.py
 * leave optional entries blank if you do not intent to use them but do include them otherwise the script will throw an error
 
 

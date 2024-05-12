@@ -23,6 +23,7 @@ def discord_embed(title,color,description):
 def gotify(title,message,priority):
     if gotifyurl != "":
         gr = requests.post(gotifyurl, data={"title": title, "message": message, "priority":priority})
+        print(f"sending notification to gotify with title: {title} message: {mesage} priority: {priority}")
         time.sleep(1)
 
 # gets new auth token from twitch

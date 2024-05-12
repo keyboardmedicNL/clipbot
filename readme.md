@@ -5,6 +5,7 @@ included are:
 - a post script that sends a http post to a watchdog server of your choosing, wich wont happen if the url is left blank in the config
 - a http webserver running to use for uptime monitoring by having an approachable url wich can be checked with something like uptime kuma
 - remote logging capabilities with use of a discord webhook where debugging messages get posted, wich wont happen if the url is left blank in the config
+- remote alerts on errors trough gotify, wich wont happen if the url is left blank in the config
 
 # how to use:
 1. install python on your system from the python website https://www.python.org/downloads/
@@ -17,6 +18,7 @@ included are:
     "webhookurl": "MAIN_WEBHOOK_WHERE_CLIPS_GET_POSTED",
     "webhooklogurl": "WEBHOOK_TO_USE_TO_LOG_DEBUGGING_MESSAGES_TO_A_WEBHOOK/OPTIONAL",
     "webhookmonitorurl": "URL_FOR_REMOTE_MONITORING_SERVER/OPTIONAL",
+    "gotifyurl": "URL_FOR_ALERTS_ON_ERRORS_TROUGH_GOTIFY/OPTIONAL",
     "botname": "NAME_VALUE_SEND_TO_REMOTE_MONITORING_SERVER/OPTIONAL",
     "posttimeout": "TIME_BETWEEN_POSTS_TO_REMOTE_MONITORING/OPTIONAL",
     "hostname": "ADRESS_FOR_LOCAL_WEBSERVER",
@@ -25,7 +27,7 @@ included are:
 ```
 4. create a streamers.txt file in the config folder and add every streamer you want to poll on a new line, alternativly add the url to a txt file that contains the list to poll
 5. input the correct data and launch the script clipbot.py
-* leave optional entries blank if you do not intent to use them but do include them otherwise the script will throw an error
+* leave optional entries blank if you do not intent to use them but do include them otherwise the script will throw an error for example "webhooklogurl":""
 
 
 Optionally a dockerfile is included wich can be used to build a docker image or use the one on my repository with the following code

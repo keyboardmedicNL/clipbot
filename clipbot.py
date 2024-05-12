@@ -19,6 +19,12 @@ def discord_embed(title,color,description):
         rl = requests.post(webhooklogurl, json=data)
         time.sleep(1)
 
+# formats notification for use with gotify
+def gotify(title,message,priority):
+    if gotifyurl != "":
+        gr = requests.post(gotifyurl, data={"title": title, "message": message, "priority":priority})
+        time.sleep(1)
+
 # gets new auth token from twitch
 def gettoken():
     print("Requesting new token from twitch")
@@ -49,6 +55,7 @@ with open("config/config.json") as config:
     webhookurl = configJson["webhookurl"]
     webhooklogurl = configJson["webhooklogurl"]
     webhookmonitorurl = configJson["webhookmonitorurl"]
+    gotifyurl = configJson["gotifyurl"]
     config.close()
 print("<CLIPBOT> succesfully loaded config")
 discord_embed("Clipbot",14081792,"succesfully loaded config")
@@ -92,7 +99,6 @@ while True:
         if clips_exists == True:
             with open("config/clips.txt", 'r') as clipsFile: 
                 clips = [line.rstrip() for line in clipsFile]
-                clipsFile.close()
             with open("config/clips.txt",'w') as clipsFile:
                 pass
         else:
@@ -106,43 +112,48 @@ while True:
         hourAgoFormatted = hourAgo.strftime("%Y-%m-%dT%H:%M:%SZ")
     # loop start
         for streamer in streamers:
-            r=requests.get(f"https://api.twitch.tv/helix/users?login={streamer}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
-            print(f"Request response: {r}")
-    # checks if token is valid and requests a new one if not
-            if "401" in str(r):
-                token = gettoken()
+            try:
                 r=requests.get(f"https://api.twitch.tv/helix/users?login={streamer}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
-            elif "200" in str(r):
-                print(f"{token} is valid and will be used")
-            else:
-                discord_embed("Clipbot",10159108,f"request response: {r}")
-    # Continues pulling clips from twitch api
-            streamerJson = r.json()
-            streamerId = streamerJson["data"][0]["id"]
-            print(f"<CLIPBOT> streamer used to poll for clips {streamer} {streamerId}")
-            discord_embed("Clipbot",14081792,f"streamer used to poll for clips {streamer} {streamerId}")
-            rr=requests.get(f"https://api.twitch.tv/helix/clips?broadcaster_id={streamerId}&started_at={hourAgoFormatted}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
-            clipsJson = rr.json()
-            print (f"json recieved from poll: {json.dumps(clipsJson)}")
-    # loop start
-            for clip in clipsJson["data"]:
-                clipUrl = clip["url"]
-                print(f"url to post {clipUrl}")
-    # checks if clip was allready posted
-                if clipUrl not in clips:
-                    r = requests.post(webhookurl, data={"content": clipUrl})
-                    print(f"{clipUrl} posted on discord")
-                    discord_embed("Clipbot",703235,f"{clipUrl} posted on discord")
-                    with open('config/clips.txt', 'a') as clipsFile:
-                        clipsFile.write(clipUrl + '\n')
-                        clipsFile.close()
+                print(f"Request response: {r}")
+        # checks if token is valid and requests a new one if not
+                if "401" in str(r):
+                    token = gettoken()
+                    r=requests.get(f"https://api.twitch.tv/helix/users?login={streamer}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
+                elif "200" in str(r):
+                    print(f"{token} is valid and will be used")
                 else:
-                    print(f"{clipUrl} not posted because it was allready posted")
-                    discord_embed("Clipbot",14081792,f"{clipUrl} not posted because it was allready posted")
+                    discord_embed("Clipbot",10159108,f"request response: {r}")
+        # Continues pulling clips from twitch api
+                streamerJson = r.json()
+                streamerId = streamerJson["data"][0]["id"]
+                print(f"<CLIPBOT> streamer used to poll for clips {streamer} {streamerId}")
+                discord_embed("Clipbot",14081792,f"streamer used to poll for clips {streamer} {streamerId}")
+                rr=requests.get(f"https://api.twitch.tv/helix/clips?broadcaster_id={streamerId}&started_at={hourAgoFormatted}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
+                clipsJson = rr.json()
+                print (f"json recieved from poll: {json.dumps(clipsJson)}")
+        # loop start
+                for clip in clipsJson["data"]:
+                    clipUrl = clip["url"]
+                    print(f"url to post {clipUrl}")
+        # checks if clip was allready posted
+                    if clipUrl not in clips:
+                        r = requests.post(webhookurl, data={"content": clipUrl})
+                        print(f"{clipUrl} posted on discord")
+                        discord_embed("Clipbot",703235,f"{clipUrl} posted on discord")
+                        with open('config/clips.txt', 'a') as clipsFile:
+                            clipsFile.write(f"{clipUrl}\n")
+                    else:
+                        print(f"{clipUrl} not posted because it was allready posted")
+                        discord_embed("Clipbot",14081792,f"{clipUrl} not posted because it was allready posted")
+            except Exception as e:
+                print(f"An exception occurred in the main loop whilst checking streamer: {streamer} {str(e)}")
+                discord_embed("Clipbot",10159108,f"An exception occurred in the main loop whilst checking streamer: {streamer} {str(e)}")
+                gotify("Clipbot",f"An exception occurred in the main loop whilst checking streamer: {streamer} {str(e)}","5")
         print("waiting for 1 hour")
         discord_embed("Clipbot",14081792,"waiting for 1 hour")
         time.sleep(3600)
     except Exception as e:
         print(f"An exception occurred in the main loop: {str(e)} waiting for 1 minute")
         discord_embed("Clipbot",10159108,f"An exception occurred in the main loop: {str(e)} waiting for 1 minute")
+        gotify("Clipbot",f"An exception occurred in the main loop: {str(e)} waiting for 1 minute","5")
         time.sleep(60)

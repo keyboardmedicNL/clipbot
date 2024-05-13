@@ -24,6 +24,7 @@ included are:
     "posttimeout": "TIME_BETWEEN_POSTS_TO_REMOTE_MONITORING/OPTIONAL",
     "hostname": "ADRESS_FOR_LOCAL_WEBSERVER",
     "webport": PORT_FOR_LOCAL_WEBSERVER/OPTIONAL
+    "verbose": "TRUE OR FALSE"
 }
 ```
 4. create a streamers.txt file in the config folder and add every streamer you want to poll on a new line, alternativly add the url to a txt file that contains the list to poll

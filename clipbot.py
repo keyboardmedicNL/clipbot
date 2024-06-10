@@ -185,14 +185,14 @@ while True:
                         discord_embed("Clipbot","yellow",f"url to post {clipUrl}",False)
         # checks if clip was allready posted
                     if clipUrl not in clips:
-                        r = requests.post(webhookurl, data={"content": clipUrl}, params={'wait': 'true'})
-                        if 200 in str(r):
-                            print(f"{clipUrl} posted on discord from {streamer} with response {str(r)}")
-                            discord_embed("Clipbot","green",f"{clipUrl} posted on discord from {streamer} with response {str(r)}",False)
+                        rclip = requests.post(webhookurl, data={"content": clipUrl}, params={'wait': 'true'})
+                        if "200" in str(rclip):
+                            print(f"{clipUrl} posted on discord from {streamer} with response {str(rclip)}")
+                            discord_embed("Clipbot","green",f"{clipUrl} posted on discord from {streamer} with response {str(rclip)}",False)
                         else:
-                            print(f"attempted to post {clipUrl} on discord from {streamer} with response {str(r)}")
-                            discord_embed("Clipbot","red",f"attempted to post {clipUrl} on discord from {streamer} with response {str(r)}",True)
-                            gotify("Clipbot",f"attempted to post {clipUrl} on discord from {streamer} with response {str(r)}","5")
+                            print(f"attempted to post {clipUrl} on discord from {streamer} with response {str(rclip)}")
+                            discord_embed("Clipbot","red",f"attempted to post {clipUrl} on discord from {streamer} with response {str(rclip)}",True)
+                            gotify("Clipbot",f"attempted to post {clipUrl} on discord from {streamer} with response {str(rclip)}","5")
                         if verbose >= 1:
                             print(f"appending {clipUrl} to clips.txt")
                             discord_embed("Clipbot","blue",f"appending {clipUrl} to clips.txt",False)

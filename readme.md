@@ -8,7 +8,7 @@ included are:
 - remote alerts on errors trough gotify, wich wont happen if the url is left blank in the config
 
 # how to use:
-1. install python on your system from the python website https://www.python.org/downloads/
+1. install python on your system from the python website https://www.python.org/downloads/ (make sure you tick "install to path" if you intend to use the included start.bat)
 2. place all contents in a folder and make a "config" folder.
 3. make a config.json and copy the text below into the file 
 ```
@@ -28,7 +28,7 @@ included are:
 }
 ```
 4. create a streamers.txt file in the config folder and add every streamer you want to poll on a new line, alternativly add the url to a txt file that contains the list to poll
-5. input the correct data and launch the script clipbot.py
+5. input the correct data and launch the script clipbot.py (start.bat on windows)
 * leave optional entries blank if you do not intent to use them but do include them otherwise the script will throw an error for example "webhooklogurl":""
 
 

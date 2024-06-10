@@ -35,8 +35,8 @@ while True:
     try:
         x = requests.post( webhookmonitorurl, json = myobj) # sends post request
         print("<POST> webhook response is: " + x.text) # log message
-        discord_embed("Clipbot/post",14081792,f"webhook response is: {x.text}")
+        discord_embed("Clipbot/post",14081792,f"post send to webhook with response: {x.text}")
     except Exception as e: # catches exception
-        print(f"An exception occurred in main loop: {str(e)}")
+        print(f"<POST> An exception occurred in main loop: {str(e)}")
         discord_embed("Clipbot/post",10159108,f"An exception occurred in main loop: {str(e)}")
     time.sleep(timeout)

@@ -1,0 +1,28 @@
+import yaml
+import logging
+
+default_config = {
+    "twitch_api_id":"",
+    "twitch_api_secret":"",
+    "discord_webhook_url":"",
+    "poll_interval":10,
+    "team_name": ""
+}
+
+# loads config from file
+def load_config() -> dict:
+    with open("config/config.yaml") as config_file:
+        config_yaml = yaml.safe_load(config_file)
+        merged_config = config_object({**default_config, **config_yaml})
+    if merged_config.twitch_api_id == "YOUR_API_ID" or merged_config.twitch_api_secret == "YOUR_API_SECRET" or merged_config.discord_webhook_url == "YOUR_WEBHOOK_URL":
+        raise RuntimeError("you are missing required values in your config. please fill them in and try again")
+    else:
+        logging.debug("succesfully loaded config")        
+        return(merged_config)
+
+
+class config_object:
+    def __init__(self, d=None):
+        if d is not None:
+            for key, value in d.items():
+                setattr(self, key, value)

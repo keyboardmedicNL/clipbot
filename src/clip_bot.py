@@ -1,127 +1,172 @@
+import housey_logging
+housey_logging.configure()
+
 import time
 import requests
-import json
 from datetime import datetime, timezone, timedelta
+import config_loader
+import requests_error_handler
+import twitch_api_handler
+import logging
+from os.path import exists
 
-# Loads variables used in script
-with open("config/config.json") as config:
-    configJson = json.load(config)
-    twitchClientId = configJson["twitchClientId"]
-    twitchSecret = configJson["twitchSecret"]
-    webhookurl = configJson["webhookurl"]
-    webhooklogurl = configJson["webhooklogurl"]
-    webhookmonitorurl = configJson["webhookmonitorurl"]
-    webport = configJson["webport"]
-    gotifyurl = configJson["gotifyurl"]
-    ping_id = configJson["pingid"]
-    verbose = int(configJson["verbose"])
-print("succesfully loaded config")
+config = config_loader.load_config
+
+get_token_from_twitch_api = twitch_api_handler.get_token_from_twitch_api
+get_list_of_team_member_uids = twitch_api_handler.get_list_of_team_member_uids
+
+init_error_handler = requests_error_handler.init_error_handler
+handle_response_not_ok = requests_error_handler.handle_response_not_ok
+handle_request_exception = requests_error_handler.handle_request_exception
+raise_no_more_tries_exception = requests_error_handler.raise_no_more_tries_exception
+
+get_token_from_twitch_api = twitch_api_handler.get_token_from_twitch_api
+get_list_of_team_member_uids = twitch_api_handler.get_list_of_team_member_uids
+get_list_of_clips = twitch_api_handler.get_list_of_clips
 
 
-# Main loop that polls the streamers one by one and checks for clips in the last hour
-while True:
+def get_list_of_streamers(token_from_twitch: str, team_name: str) -> list:
 
-    try:
+    if team_name == "":
 
-    # reads streamers.txt
-        streamers = getstreamers()
+        # gets list of streamers from streamers.txt
+        with open("config/streamers.txt", 'r') as file_with_streamer_ids:
+            list_of_streamers = [line.rstrip() for line in file_with_streamer_ids]
+            if "http" in list_of_streamers[0]:
 
-    # opens clips file and loads it for comparison later
-        if verbose >= 1:
-            print("checking if clips.txt exsists")
+                time_before_retry, max_errors_allowed, error_count = init_error_handler()
 
-        clips_exists = exists("config/clips.txt")
+                while error_count < max_errors_allowed:
 
-        if clips_exists == True:
+                    try:
+                        get_streamers_trough_request_response = requests.get(list_of_streamers[0])
 
-            with open("config/clips.txt", 'r') as clipsFile: 
-                clips = [line.rstrip() for line in clipsFile]
+                        if get_streamers_trough_request_response.ok:
+                            list_of_streamers = get_streamers_trough_request_response.text.splitlines()
+                            break
 
-            if verbose >= 1:
-                print(f"content of clips.txt is:\n{clips}")
+                        else:
+                            error_count, remaining_errors = handle_response_not_ok(error_count)
+                            logging.error('was unable to get list of streamers trough request with response: %s with exception: %s trying %s more times and waiting for %s seconds', get_streamers_trough_request_response, remaining_errors, time_before_retry)
+                            if error_count != max_errors_allowed:
+                                time.sleep(time_before_retry)
 
-            with open("config/clips.txt",'w') as clipsFile:
-                pass
+                    except Exception as e:
+                        error_count, remaining_errors = handle_request_exception(error_count)
+                        logging.error('was unable to get list of streamers trough request with exception: %s trying %s more times and waiting for %s seconds', e, remaining_errors, time_before_retry)
+                        if error_count != max_errors_allowed:
+                            time.sleep(time_before_retry)
 
-            if verbose >= 1:
-                print("clips.txt read and erased")
-
-        else:
-            clips = []
-            with open("config/clips.txt",'w') as clipsFile:
-                pass
-
-            print("clips.txt did not exsist and was created")
-
-    # Gets current time and hour ago in utc for use in request
-        currentTime = (datetime.now(timezone.utc))
-        currentTimeFormatted = (currentTime.strftime("%Y-%m-%dT%H:%M:%SZ"))
-        hourAgo = datetime.now(timezone.utc) - timedelta(hours=1, minutes=00)
-        hourAgoFormatted = hourAgo.strftime("%Y-%m-%dT%H:%M:%SZ")
-   
-    # loop start
-        for streamer in streamers:
-
-            try:
-                r=requests.get(f"https://api.twitch.tv/helix/users?login={streamer}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
-                print(f"Request response: {r}")
-
-        # checks if token is valid and requests a new one if not
-                if "401" in str(r):
-                    token = gettoken()
-                    r=requests.get(f"https://api.twitch.tv/helix/users?login={streamer}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
+                if error_count == max_errors_allowed:
+                    raise_no_more_tries_exception(max_errors_allowed)
                 
-                elif "200" in str(r):
-                    if verbose >= 1:
-                        print(f"twitch auth token: {token} is valid and will be used")
+    else:
+        list_of_streamers = get_list_of_team_member_uids(team_name, token_from_twitch)
 
-        # Continues pulling clips from twitch api
-                streamerJson = r.json()
-                streamerId = streamerJson["data"][0]["id"]
+    logging.info('list of streamers to poll from: %s', list_of_streamers)
 
-                if verbose >= 1:
-                    print(f"streamer used to poll for clips {streamer} {streamerId}")
+    return(list_of_streamers)
 
-                rr=requests.get(f"https://api.twitch.tv/helix/clips?broadcaster_id={streamerId}&started_at={hourAgoFormatted}", headers={'Authorization':f"Bearer {token}", 'Client-Id':twitchClientId})
-                clipsJson = rr.json()
+# opens clips file and loads it for comparison later or creates it if it does not exsist
+def init_clips_file():
+        
+    clips = []
+    logging.debug("checking if clips.txt exsists")
+
+    clips_exists = exists("config/clips.txt")
+
+    if clips_exists:
+
+        with open("config/clips.txt", 'r') as clipsFile: 
+            clips = [line.rstrip() for line in clipsFile]
+
+        logging.debug(f"content of clips.txt is:\n{clips}")
+        logging.info("clips.txt read and erased")
+
+    else:
+        with open("config/clips.txt",'w') as clipsFile:
+            pass
+
+        logging.info("clips.txt did not exsist and was created")
+
+    return(clips)
+
+def post_clips_to_discord(list_of_new_clips: list, list_of_clips_to_ignore: list, discord_webhook_url: str) -> list:
+
+    for clip in list_of_new_clips:
+        if clip not in list_of_clips_to_ignore:
+
+            time_before_retry, max_errors_allowed, error_count = init_error_handler()
+
+            while error_count < max_errors_allowed:
+
+                try:
+                    send_clip_to_discord_response = requests.post(discord_webhook_url, data={"content": clip}, params={'wait': 'true'})
+
+                    list_of_clips_to_ignore.append(clip)
+
+                    if send_clip_to_discord_response.ok:
+                        logging.info("clip with url: %s was posted to discord webhook with response: %s",clip, send_clip_to_discord_response)
+                        break
+
+                    else:
+                        error_count, remaining_errors = handle_response_not_ok(error_count)
+                        logging.error("unable to post clip with url: %s to discord with response: %s trying %s more times and waiting for %s seconds",clip, send_clip_to_discord_response, remaining_errors , time_before_retry)
+                        if error_count != max_errors_allowed:
+                            time.sleep(time_before_retry)
                 
-                if verbose >= 1:
-                    print (f"poll response {str(rr)} with json: {json.dumps(clipsJson)}")
+                except Exception as e:
+                    error_count, remaining_errors = handle_request_exception(error_count)
+                    logging.error("unable to post clip to discord with exception: %s trying %s more times and waiting for %s seconds", e, remaining_errors, time_before_retry)
+                    if error_count != max_errors_allowed:
+                        time.sleep(time_before_retry)
+
+            if error_count == max_errors_allowed:
+                raise_no_more_tries_exception(max_errors_allowed)
+    
+    return(list_of_clips_to_ignore)
+         
+def save_clips_to_ignore_to_file(list_of_clips_to_ignore: list):
+    with open("config/clips.txt",'w') as clips_file:
+        pass
+    with open("config/clips.txt",'a') as clips_file:
+        for clip in list_of_clips_to_ignore:
+            clips_file.write(clip + '\n')
+    
+    logging.info("saved list of previously posted clips to file")
+
+def main():
+
+    loaded_config = config()
+
+    poll_interval_seconds = loaded_config.poll_interval*60
+
+    token = get_token_from_twitch_api()
+
+    list_of_clips_posted_before = init_clips_file()
+
+    while True:
+
+        # reads streamers.txt
+        streamers = get_list_of_streamers(token, loaded_config.team_name)
 
         # loop start
-                for clip in clipsJson["data"]:
+        for streamer in streamers:
 
-                    clipUrl = clip["url"]
+            # formats day ago timestamp to use for clip request 
+            day_ago_timestamp = datetime.now(timezone.utc) - timedelta(hours=24, minutes=00)
+            day_ago_formatted_timestamp = day_ago_timestamp.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-                    if verbose >= 1:
-                        print(f"url to post {clipUrl}")
+            logging.debug("current selected streamer: %s", streamer)
 
-        # checks if clip was allready posted
-                    if clipUrl not in clips:
+            list_of_new_clips = get_list_of_clips(streamer, token, day_ago_formatted_timestamp)   
 
-                        rclip = requests.post(webhookurl, data={"content": clipUrl}, params={'wait': 'true'})
+            list_of_clips_to_save = post_clips_to_discord(list_of_new_clips, list_of_clips_posted_before, loaded_config.discord_webhook_url)
 
-                        if "200" in str(rclip):
-                            print(f"{clipUrl} posted on discord from {streamer} with response {str(rclip)}")
-                        
-                        else:
-                            print(f"attempted to post {clipUrl} on discord from {streamer} with response {str(rclip)}")
-                        
-                        if verbose >= 1:
-                            print(f"appending {clipUrl} to clips.txt")
-                        
-                        with open('config/clips.txt', 'a') as clipsFile:
-                            clipsFile.write(f"{clipUrl}\n")
-                    
-                    elif verbose >= 1:
-                        print(f"{clipUrl} not posted because it was allready posted")
+        save_clips_to_ignore_to_file(list_of_clips_to_save)
 
-            except Exception as e:
-                print(f"An exception occurred in the main loop whilst checking streamer: {streamer} {str(e)}")
+        logging.info("main loop finished, waiting for %s minutes", loaded_config.poll_interval)
+        time.sleep(poll_interval_seconds)
 
-        print("main loop finished, waiting for 1 hour")
-        time.sleep(3600)
-
-    except Exception as e:
-        print(f"An exception occurred in the main loop: {str(e)} waiting for 1 minute")
-        time.sleep(60)
+if __name__ == "__main__":
+    main()

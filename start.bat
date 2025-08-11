@@ -1,3 +1,3 @@
 @echo off
-python clipbot.py
+python src/clip_bot.py
 pause

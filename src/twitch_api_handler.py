@@ -1,16 +1,11 @@
 import config_loader
-import requests
 import logging
 import requests_error_handler
-import time
-
-# vars
 
 loaded_config = config_loader.load_config()
 
 handle_request_error = requests_error_handler.handle_request_error
 
-# renews token used for twitch api calls
 def get_token_from_twitch_api() -> str:
 
     logging.info("Requesting new api auth token from twitch")
@@ -38,7 +33,6 @@ def validate_token(token_from_twitch: str) -> str:
 
         return(token_from_twitch)
 
-# get list of team member uids
 def get_list_of_team_member_uids(team_name: str, api_token: str) -> list:
 
     logging.info("getting team data from twitch api for team %s", team_name)
@@ -69,6 +63,29 @@ def get_list_of_clips(streamer_id: str, api_token: str, time_last_checked: str) 
         list_of_new_clips.append(clip["url"])
 
     return(list_of_new_clips)
+
+def get_stream_json_from_twitch(streamer: str, token_from_twitch: str) -> tuple[dict, dict, bool, str, str]:
+
+    get_stream_json_from_twitch_response = handle_request_error(request_type="get",request_url=f"https://api.twitch.tv/helix/streams?&user_id={streamer}", request_headers={'Authorization':f"Bearer {token_from_twitch}", 'Client-Id':loaded_config.twitch_api_id})
+
+    get_stream_json_from_twitch_request_json = get_stream_json_from_twitch_response.json()
+
+    try: 
+
+        if str(get_stream_json_from_twitch_request_json["data"][0]["type"]).lower() == "live":
+
+            is_live = True
+            stream_category = get_stream_json_from_twitch_request_json["data"][0]["game_name"]
+            streamer_name = get_stream_json_from_twitch_request_json["data"][0]["user_name"]
+
+            logging.info("%s with name %s is live and in category %s",streamer, streamer_name, stream_category)
+        
+    except:
+        is_live = False
+        stream_category = ""
+        streamer_name = ""
+
+    return(get_stream_json_from_twitch_response, get_stream_json_from_twitch_request_json, is_live, stream_category, streamer_name)
 
 
     

@@ -27,6 +27,12 @@ def handle_request_error(request_type: str="get", request_url: str=None, request
             elif request_type == "post":
                 request_response = requests.post(request_url, data=request_data, json=request_json, params=request_params)
 
+            elif request_type == "patch":
+                request_response = requests.patch(request_url, data=request_data, json=request_json, params=request_params)
+
+            elif request_type == "delete":
+                request_response = requests.delete(request_url, params=request_params)
+
 
             if request_response.status_code in status_type_ok:
                 return request_response

@@ -2,7 +2,6 @@ import housey_logging
 housey_logging.configure()
 
 import time
-import requests
 from datetime import datetime, timezone, timedelta
 import config_loader
 import requests_error_handler
@@ -15,16 +14,12 @@ config = config_loader.load_config
 get_token_from_twitch_api = twitch_api_handler.get_token_from_twitch_api
 get_list_of_team_member_uids = twitch_api_handler.get_list_of_team_member_uids
 
-init_error_handler = requests_error_handler.init_error_handler
-handle_response_not_ok = requests_error_handler.handle_response_not_ok
-handle_request_exception = requests_error_handler.handle_request_exception
-raise_no_more_tries_exception = requests_error_handler.raise_no_more_tries_exception
+handle_request_error = requests_error_handler.handle_request_error
 
 get_token_from_twitch_api = twitch_api_handler.get_token_from_twitch_api
 get_list_of_team_member_uids = twitch_api_handler.get_list_of_team_member_uids
 get_list_of_clips = twitch_api_handler.get_list_of_clips
 validate_token = twitch_api_handler.validate_token
-
 
 def get_list_of_streamers(token_from_twitch: str, team_name: str) -> list:
 
@@ -35,31 +30,9 @@ def get_list_of_streamers(token_from_twitch: str, team_name: str) -> list:
             list_of_streamers = [line.rstrip() for line in file_with_streamer_ids]
             if "http" in list_of_streamers[0]:
 
-                time_before_retry, max_errors_allowed, error_count = init_error_handler()
+                get_streamers_trough_request_response = handle_request_error("get",list_of_streamers[0])
 
-                while error_count < max_errors_allowed:
-
-                    try:
-                        get_streamers_trough_request_response = requests.get(list_of_streamers[0])
-
-                        if get_streamers_trough_request_response.ok:
-                            list_of_streamers = get_streamers_trough_request_response.text.splitlines()
-                            break
-
-                        else:
-                            error_count, remaining_errors = handle_response_not_ok(error_count)
-                            logging.error('was unable to get list of streamers trough request with response: %s with exception: %s trying %s more times and waiting for %s seconds', get_streamers_trough_request_response, remaining_errors, time_before_retry)
-                            if error_count != max_errors_allowed:
-                                time.sleep(time_before_retry)
-
-                    except Exception as e:
-                        error_count, remaining_errors = handle_request_exception(error_count)
-                        logging.error('was unable to get list of streamers trough request with exception: %s trying %s more times and waiting for %s seconds', e, remaining_errors, time_before_retry)
-                        if error_count != max_errors_allowed:
-                            time.sleep(time_before_retry)
-
-                if error_count == max_errors_allowed:
-                    raise_no_more_tries_exception(max_errors_allowed)
+                list_of_streamers = get_streamers_trough_request_response.text.splitlines()
                 
     else:
         list_of_streamers = get_list_of_team_member_uids(team_name, token_from_twitch)
@@ -97,34 +70,12 @@ def post_clips_to_discord(list_of_new_clips: list, list_of_clips_to_ignore: list
     for clip in list_of_new_clips:
         if clip not in list_of_clips_to_ignore:
 
-            time_before_retry, max_errors_allowed, error_count = init_error_handler()
+            send_clip_to_discord_response = handle_request_error(request_type="post",request_url=discord_webhook_url, request_data={"content": clip}, request_params={'wait': 'true'})
 
-            while error_count < max_errors_allowed:
+            list_of_clips_to_ignore.append(clip)
 
-                try:
-                    send_clip_to_discord_response = requests.post(discord_webhook_url, data={"content": clip}, params={'wait': 'true'})
+            logging.info("clip with url: %s was posted to discord webhook with response: %s",clip, send_clip_to_discord_response)
 
-                    list_of_clips_to_ignore.append(clip)
-
-                    if send_clip_to_discord_response.ok:
-                        logging.info("clip with url: %s was posted to discord webhook with response: %s",clip, send_clip_to_discord_response)
-                        break
-
-                    else:
-                        error_count, remaining_errors = handle_response_not_ok(error_count)
-                        logging.error("unable to post clip with url: %s to discord with response: %s trying %s more times and waiting for %s seconds",clip, send_clip_to_discord_response, remaining_errors , time_before_retry)
-                        if error_count != max_errors_allowed:
-                            time.sleep(time_before_retry)
-                
-                except Exception as e:
-                    error_count, remaining_errors = handle_request_exception(error_count)
-                    logging.error("unable to post clip to discord with exception: %s trying %s more times and waiting for %s seconds", e, remaining_errors, time_before_retry)
-                    if error_count != max_errors_allowed:
-                        time.sleep(time_before_retry)
-
-            if error_count == max_errors_allowed:
-                raise_no_more_tries_exception(max_errors_allowed)
-    
     return(list_of_clips_to_ignore)
          
 def save_clips_to_ignore_to_file(list_of_clips_to_ignore: list):

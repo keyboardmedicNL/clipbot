@@ -23,6 +23,7 @@ raise_no_more_tries_exception = requests_error_handler.raise_no_more_tries_excep
 get_token_from_twitch_api = twitch_api_handler.get_token_from_twitch_api
 get_list_of_team_member_uids = twitch_api_handler.get_list_of_team_member_uids
 get_list_of_clips = twitch_api_handler.get_list_of_clips
+validate_token = twitch_api_handler.validate_token
 
 
 def get_list_of_streamers(token_from_twitch: str, team_name: str) -> list:
@@ -146,6 +147,8 @@ def main():
     list_of_clips_posted_before = init_clips_file()
 
     while True:
+
+        token = validate_token(token)
 
         # reads streamers.txt
         streamers = get_list_of_streamers(token, loaded_config.team_name)
